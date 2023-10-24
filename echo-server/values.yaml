@@ -1,0 +1,2 @@
+containerPorts:
+  http: 3246
