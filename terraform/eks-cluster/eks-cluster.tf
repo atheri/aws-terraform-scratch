@@ -1,5 +1,5 @@
 resource "aws_iam_role" "eks-cluster" {
-  name = "${local.env}-eks-cluster"
+  name               = "${var.env}-eks-cluster"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -20,33 +20,36 @@ resource "aws_iam_role_policy_attachment" "eks" {
 }
 
 resource "aws_eks_cluster" "this" {
-  name     = local.env
-  version  = "1.28"
-  role_arn = aws_iam_role.eks-cluster.arn
+  name       = var.env
+  version    = "1.28"
+  role_arn   = aws_iam_role.eks-cluster.arn
   vpc_config {
-    subnet_ids = [for s in aws_subnet.private : s.id]
+    subnet_ids = var.private-subnet-ids
   }
 }
 
 resource "aws_eks_addon" "vpc-cni" {
   addon_name   = "vpc-cni"
   cluster_name = aws_eks_cluster.this.name
+  preserve     = true
 }
 
 resource "aws_eks_addon" "coredns" {
   depends_on   = [aws_eks_node_group.this] # coredns won't be healthy without nodes
   addon_name   = "coredns"
   cluster_name = aws_eks_cluster.this.name
+  preserve     = true
 }
 
 resource "aws_eks_addon" "kube-proxy" {
   addon_name   = "kube-proxy"
   cluster_name = aws_eks_cluster.this.name
+  preserve     = true
 }
 
 ### nodes ###
 resource "aws_iam_role" "eks-node" {
-  name = "${aws_eks_cluster.this.name}-eks-node"
+  name               = "${aws_eks_cluster.this.name}-eks-node"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -72,7 +75,7 @@ resource "aws_iam_role_policy_attachment" "eks-node" {
 }
 
 resource "aws_eks_node_group" "this" {
-  node_group_name_prefix = aws_eks_cluster.this.name
+  node_group_name_prefix = "${aws_eks_cluster.this.name}-"
   cluster_name           = aws_eks_cluster.this.name
   node_role_arn          = aws_iam_role.eks-node.arn
   subnet_ids             = aws_eks_cluster.this.vpc_config[0].subnet_ids
@@ -94,7 +97,7 @@ resource "aws_iam_openid_connect_provider" "this" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.this.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
-  tags = {
+  tags            = {
     Name = "${aws_eks_cluster.this.name}-eks-irsa"
   }
 }

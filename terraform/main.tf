@@ -37,11 +37,11 @@ provider "docker" {
 
 provider "helm" {
   kubernetes {
-    host                   = aws_eks_cluster.this.endpoint
-    cluster_ca_certificate = base64decode(aws_eks_cluster.this.certificate_authority.0.data)
+    host                   = module.eks-cluster.aws_eks_cluster.endpoint
+    cluster_ca_certificate = base64decode(module.eks-cluster.aws_eks_cluster.certificate_authority.0.data)
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.this.name]
+      args        = ["eks", "get-token", "--cluster-name", module.eks-cluster.aws_eks_cluster.name]
       command     = "aws"
     }
   }
@@ -57,3 +57,15 @@ locals {
 data "aws_region" "this" {}
 data "aws_caller_identity" "this" {}
 data "aws_ecr_authorization_token" "this" {}
+
+module "network" {
+  source = "./network"
+  env    = local.env
+}
+
+module "eks-cluster" {
+  depends_on         = [module.network]
+  source             = "./eks-cluster"
+  env                = local.env
+  private-subnet-ids = module.network.private-subnet-ids
+}

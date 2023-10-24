@@ -9,12 +9,11 @@ output "elb-endpoint" {
 
 resource "null_resource" "update-local-kubeconfig" {
   triggers = {
-    eks-cluster = aws_eks_cluster.this.endpoint
+    eks-cluster = module.eks-cluster.aws_eks_cluster.endpoint
     script-sha = filesha1("scripts/get_elb_endpoint.sh")
   }
 
   provisioner "local-exec" {
-    command = "aws eks update-kubeconfig --name ${aws_eks_cluster.this.name}"
+    command = "aws eks update-kubeconfig --name ${module.eks-cluster.aws_eks_cluster.name}"
   }
 }
-

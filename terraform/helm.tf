@@ -1,10 +1,10 @@
 resource "helm_release" "this" {
-  depends_on = [aws_eks_node_group.this]
+  depends_on = [module.eks-cluster]
   name       = "echo-server"
-  chart      = "./helm/service"
+  chart      = "./../application/helm/service"
   namespace  = "default"
   values = [
-    file("./echo-server/values.yaml")
+    file("./../application/src/values.yaml")
   ]
   set {
     name  = "image"

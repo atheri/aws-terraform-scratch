@@ -10,7 +10,7 @@ locals {
 resource "docker_image" "this" {
   name = aws_ecr_repository.this.repository_url
   build {
-    context = "./echo-server"
+    context = "./../application/src"
     tag     = ["${aws_ecr_repository.this.repository_url}:${local.source-code-sha}"]
   }
   triggers = {
